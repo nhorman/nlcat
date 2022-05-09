@@ -244,6 +244,7 @@ void xfrm_sp_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, i
         parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "op", sp_ops[val]);
 
 	/* set top level data */
+	fprintf(stderr, "dir is %d\n", dir);
 	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "priority", &prio);
 	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "index", &index);
 	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "dir", dirs[dir]);
@@ -262,14 +263,18 @@ void xfrm_sp_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, i
 	if (xfrmnl_sp_get_sec_ctx(sp, &len, &exttype, &alg, &doi, &ctx_len, NULL)) {
 		parser_set_flags(sp_data, ARRAY_SIZE(sp_data), "user_sec_ctx", MAP_FLAG_EMPTY_OBJ);
 	} else {
-		ctx_str = alloca(ctx_len+1);
-		memset(ctx_str, 0, ctx_len+1);
-		xfrmnl_sp_get_sec_ctx(sp, &len, &exttype, &alg, &doi, &ctx_len, ctx_str);
-		parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "len", &len);
-		parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "exttype", &exttype);
-		parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "alg", &alg);
-		parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "doi", &doi);
-		parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "ctx_str", ctx_str);
+		if (!ctx_len)
+			parser_set_flags(sp_data, ARRAY_SIZE(sp_data), "user_sec_ctx", MAP_FLAG_EMPTY_OBJ);
+		else {
+			ctx_str = alloca(ctx_len+1);
+			memset(ctx_str, 0, ctx_len+1);
+			xfrmnl_sp_get_sec_ctx(sp, &len, &exttype, &alg, &doi, &ctx_len, ctx_str);
+			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "len", &len);
+			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "exttype", &exttype);
+			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "alg", &alg);
+			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "doi", &doi);
+			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "ctx_str", ctx_str);
+		}
 	}
 
 	result = compile_json_string(sp_tree, ARRAY_SIZE(sp_tree));
