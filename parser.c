@@ -81,7 +81,7 @@ char * compile_json_string(struct json_map *map, int mapsz)
 
 	fill_json_objects(obj, map, mapsz);	
 
-	result = json_dumps(obj, JSON_COMPACT);
+	result = json_dumps(obj, JSON_COMPACT|JSON_ENCODE_ANY);
 	json_decref(obj);
 	return result;
 }

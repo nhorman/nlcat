@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <netlink/xfrm/sa.h>
+#include <netlink/xfrm/sp.h>
 #include <netlink/xfrm/selector.h>
 #include <monitors.h>
 #include <xfrm_monitor.h>
@@ -22,6 +23,11 @@ static struct monitor_socket monitors[] = {
 		.protocol = NETLINK_XFRM,
 		.alloc_cache = xfrmnl_sa_alloc_cache,
 		.change_cb = xfrm_sa_change_cb,
+	},
+	{
+		.protocol = NETLINK_XFRM,
+		.alloc_cache = xfrmnl_sp_alloc_cache,
+		.change_cb = xfrm_sp_change_cb,
 	},
 	{
 		.protocol = 0,
