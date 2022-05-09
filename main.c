@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <monitors.h>
 
-int main(int argc, char **argv)
+int main(int argc __unused, char **argv __unused)
 {
 	setup_monitors();
 	start_monitoring();

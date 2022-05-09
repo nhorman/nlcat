@@ -3,6 +3,7 @@
 #include <netlink/xfrm/sa.h>
 #include <netlink/xfrm/selector.h>
 
+#define __unused __attribute__((unused))
 struct monitor_socket
 {
 	int protocol;
