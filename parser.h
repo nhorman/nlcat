@@ -13,6 +13,15 @@ struct json_map {
 	struct json_map *children;	
 };
 
+struct json_array_map {
+	struct json_map *map;
+	size_t num_elem;
+	size_t elem_size;
+	size_t storage_elem_size;
+	void *storage;
+	void *val[0];
+};
+
 #define TBD "TBD"
 
 #define MAP_FLAG_WAS_TBD 1 << 0
@@ -41,8 +50,13 @@ struct json_map {
 }
 
 int parser_set_val(struct json_map *map, int mapsz, char *key, void *val);
+int parser_set_array_val(struct json_array_map *map, int index, struct json_map *parser, int mapsz,  char *key, void *addr);
+
 void parser_set_flags(struct json_map *map, int mapsz, char *key, int flags);
 int parser_reset_tmpl(struct json_map *map, int mapsz);
+struct json_array_map *parser_alloc_array(struct json_map *map, size_t num_elems_per_entry, size_t storage_size);
+void parser_free_array(struct json_array_map *map);
+void *parser_next_element(struct json_array_map *map, int *index);
 
 char * compile_json_string(struct json_map *map, int mapsz);
 #endif

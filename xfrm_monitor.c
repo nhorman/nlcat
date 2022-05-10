@@ -204,6 +204,32 @@ static struct json_map xfrmnl_user_sec[] = {
 	JSON_MAP_ENTRY("ctx_str", JSON_STRING, TBD, 0, NULL),
 };
 
+struct usrtmp_array_data {
+	int spi;
+	int family;
+	char saddr[256];
+	int reqid;
+	int mode;
+	int share;
+	int optional;
+	int aalgos;
+	int ealgos;
+	int calgos;
+};
+
+static struct json_map usrtmpl_array[] = {
+	JSON_MAP_ENTRY("spi", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("family", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("saddr", JSON_STRING, TBD, 0, NULL),
+	JSON_MAP_ENTRY("reqid", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("mode", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("share", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("optionsl", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("aalgos", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("ealgos", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("calgos", JSON_INTEGER, TBD, 0, NULL),
+};
+
 static struct json_map sp_data[] = {
 	JSON_MAP_ENTRY("sel", JSON_OBJECT, TBD, ARRAY_SIZE(xfrmnl_sel), xfrmnl_sel),
 	JSON_MAP_ENTRY("lifetime_cfg", JSON_OBJECT, TBD, ARRAY_SIZE(xfrmnl_lft_cfg), xfrmnl_lft_cfg),
@@ -216,9 +242,42 @@ static struct json_map sp_data[] = {
 	JSON_MAP_ENTRY("user_sec_ctx", JSON_OBJECT, TBD, ARRAY_SIZE(xfrmnl_user_sec), xfrmnl_user_sec),
 	JSON_MAP_ENTRY("userpolicy_type", JSON_INTEGER, TBD, 0, NULL),
 	JSON_MAP_ENTRY("mark", JSON_INTEGER, TBD, 0, NULL),
+	JSON_MAP_ENTRY("usrtmpl_list", JSON_ARRAY, TBD, ARRAY_SIZE(usrtmpl_array), usrtmpl_array),
 };
 
 static struct json_map sp_tree[] = JSON_COMMON_TOPLEVEL("xfrm", "sp", TBD, sp_data);
+
+static void fill_usrtmpl_entry(struct xfrmnl_user_tmpl *utmpl, void *arg)
+{
+	struct json_array_map *usertmpl = arg;
+	struct usrtmp_array_data *newelem;
+	struct nl_addr *addr;
+	int index;
+	
+	newelem = parser_next_element(usertmpl, &index);
+	newelem->spi = xfrmnl_user_tmpl_get_spi(utmpl);
+	newelem->family = xfrmnl_user_tmpl_get_family(utmpl);
+	addr = xfrmnl_user_tmpl_get_saddr(utmpl);
+	memset(newelem->saddr, 0, 256);
+	nl_addr2str(addr, newelem->saddr, 256);
+	newelem->reqid = xfrmnl_user_tmpl_get_reqid(utmpl);
+	newelem->mode = xfrmnl_user_tmpl_get_mode(utmpl);
+	newelem->share = xfrmnl_user_tmpl_get_share(utmpl);
+	newelem->optional = xfrmnl_user_tmpl_get_optional(utmpl);
+	newelem->aalgos = xfrmnl_user_tmpl_get_aalgos(utmpl);
+	newelem->ealgos = xfrmnl_user_tmpl_get_ealgos(utmpl);
+	newelem->calgos = xfrmnl_user_tmpl_get_calgos(utmpl);
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "spi", &newelem->spi); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "family", &newelem->family); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "saddr", &newelem->saddr); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "reqid", &newelem->reqid); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "mode", &newelem->mode); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "share", &newelem->share); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "optional", &newelem->optional); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "aalgos", &newelem->aalgos); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "ealgos", &newelem->ealgos); 
+	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "calgos", &newelem->calgos); 
+}
 
 void xfrm_sp_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int val, void *data __unused)
 {
@@ -238,20 +297,20 @@ void xfrm_sp_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, i
 	unsigned int ctx_len;
 	char *ctx_str = NULL;
 	int uptype = xfrmnl_sp_get_userpolicy_type(sp);
+	struct json_array_map *usrtmpl = NULL;
 	char *result;
 
 	/* set the op*/
         parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "op", sp_ops[val]);
 
 	/* set top level data */
-	fprintf(stderr, "dir is %d\n", dir);
-	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "priority", &prio);
-	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "index", &index);
-	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "dir", dirs[dir]);
-	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "action", &action);
-	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "flags", &flags);
-	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "share", &share);
-	parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "userpolicy_type", &uptype);
+	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "priority", &prio);
+	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "index", &index);
+	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "dir", dirs[dir]);
+	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "action", &action);
+	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "flags", &flags);
+	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "share", &share);
+	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "userpolicy_type", &uptype);
 	
 	/* fill in the selector */
 	fill_sel(sel);
@@ -277,10 +336,17 @@ void xfrm_sp_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, i
 		}
 	}
 
+	/* fill out the usertmp array */
+	usrtmpl = parser_alloc_array(usrtmpl_array, ARRAY_SIZE(usrtmpl_array), sizeof(struct usrtmp_array_data)); 
+	xfrmnl_sp_foreach_usertemplate(sp, fill_usrtmpl_entry, usrtmpl);
+	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "usrtmpl_list", usrtmpl);
+
 	result = compile_json_string(sp_tree, ARRAY_SIZE(sp_tree));
 	print_json_event(result);
 	parser_reset_tmpl(sp_tree, ARRAY_SIZE(sp_tree));
 	free(result);
+	parser_free_array(usrtmpl);
+
 	return;
 }
 
