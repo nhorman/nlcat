@@ -27,325 +27,192 @@ static char *dirs[] = {
 	"fwd",
 };
 
-static struct json_map xfrmnl_lft_cfg[] = {
-	JSON_MAP_ENTRY("soft_byte_limit", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("hard_byte_limit", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("soft_packet_limit", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("hard_packet_limit", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("soft_add_expires_seconds", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("hard_add_expires_seconds", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("soft_use_expires_seconds", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("hard_use_expires_seconds", JSON_INTEGER, TBD, 0, NULL),
-};
-
-static struct json_map xfrmnl_sel[] ={
-	JSON_MAP_ENTRY("saddr", JSON_STRING, TBD, 0, NULL),
-	JSON_MAP_ENTRY("daddr", JSON_STRING, TBD, 0, NULL),
-	JSON_MAP_ENTRY("dport", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("dport_mask", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("sport", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("sport_mask", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("family", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("prefixlen_d", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("prefixlen_s", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("proto", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("ifindex", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("user", JSON_INTEGER, TBD, 0, NULL),
-};
-
-static struct json_map sa_data[] = {
-	JSON_MAP_ENTRY("saddr", JSON_STRING, TBD, 0, NULL),
-	JSON_MAP_ENTRY("daddr", JSON_STRING, TBD, 0, NULL),
-	JSON_MAP_ENTRY("spi", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("proto", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("family", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("mode", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("flags", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("seq", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("reqid", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("lifetime_cfg", JSON_OBJECT, TBD, ARRAY_SIZE(xfrmnl_lft_cfg), xfrmnl_lft_cfg), 
-	JSON_MAP_ENTRY("sel", JSON_OBJECT, TBD, ARRAY_SIZE(xfrmnl_sel), xfrmnl_sel),
-};
-
-static struct json_map sa_tree[] = JSON_COMMON_TOPLEVEL("xfrm", "sa", TBD, sa_data);
-
-static void fill_sel(struct xfrmnl_sel *sel)
+static void fill_sel(struct xfrmnl_sel *sel, json_t *obj, char selsaddr[256], char seldaddr[256])
 {
-	int dport, dport_mask;
-	int sport, sport_mask;
-	int selfam;
-	int prefixlen_d, prefixlen_s;
-	int selproto;
-	int ifindex;
-	int user;
 	struct nl_addr *saddr;
 	struct nl_addr *daddr;
-	char selsaddr[256];
-	char seldaddr[256];
 
 	memset(selsaddr, 0, 256);
 	memset(seldaddr, 0, 256);	
-	if (!sel)
-		parser_set_flags(sa_data, ARRAY_SIZE(sa_data), "sel", MAP_FLAG_EMPTY_OBJ);
-	else {
+	if (sel) {
 		saddr = xfrmnl_sel_get_saddr(sel);
 		daddr = xfrmnl_sel_get_daddr(sel);
-		dport = xfrmnl_sel_get_dport(sel);
-		dport_mask = xfrmnl_sel_get_dportmask(sel);
-		sport = xfrmnl_sel_get_sport(sel);
-		sport_mask = xfrmnl_sel_get_sportmask(sel);
-		selfam = xfrmnl_sel_get_family(sel);
-		prefixlen_d = xfrmnl_sel_get_prefixlen_d(sel);
-		prefixlen_s = xfrmnl_sel_get_prefixlen_s(sel);
-		selproto = xfrmnl_sel_get_proto(sel);
-		ifindex = xfrmnl_sel_get_ifindex(sel);
-		user = xfrmnl_sel_get_userid(sel);
-
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "saddr", nl_addr2str(saddr, selsaddr, 256));
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "daddr", nl_addr2str(daddr, seldaddr, 256));
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "dport", &dport);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "dport_mask", &dport_mask);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "sport", &sport);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "sport_mask", &sport_mask);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "family", &selfam);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "prefixlen_d", &prefixlen_d);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "prefixlen_s", &prefixlen_s);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "proto", &selproto);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "ifindex", &ifindex);
-		parser_set_val(xfrmnl_sel, ARRAY_SIZE(xfrmnl_sel), "user", &user);
+		JSON_ASSIGN_STRING(obj, "saddr", nl_addr2str(saddr, selsaddr, 256));
+		JSON_ASSIGN_STRING(obj, "daddr", nl_addr2str(daddr, seldaddr, 256));
+		JSON_ASSIGN_INT(obj, "dport", xfrmnl_sel_get_dport(sel));
+		JSON_ASSIGN_INT(obj, "dport_mask", xfrmnl_sel_get_dportmask(sel));
+		JSON_ASSIGN_INT(obj, "sport", xfrmnl_sel_get_sport(sel));
+		JSON_ASSIGN_INT(obj, "sport_mask", xfrmnl_sel_get_sportmask(sel));
+		JSON_ASSIGN_INT(obj, "family", xfrmnl_sel_get_family(sel));
+		JSON_ASSIGN_INT(obj, "prefixlen_d", xfrmnl_sel_get_prefixlen_d(sel));
+		JSON_ASSIGN_INT(obj, "prefixlen_s", xfrmnl_sel_get_prefixlen_s(sel));
+		JSON_ASSIGN_INT(obj, "proto", xfrmnl_sel_get_proto(sel));
+		JSON_ASSIGN_INT(obj, "ifindex", xfrmnl_sel_get_ifindex(sel));
+		JSON_ASSIGN_INT(obj, "user", xfrmnl_sel_get_userid(sel));
 	}
 }
 
-void fill_lft(struct xfrmnl_ltime_cfg *ltime)
+void fill_lft(struct xfrmnl_ltime_cfg *ltime, json_t *obj)
 {
-	int sblim, hblim;
-	int splim, hplim;
-	int saexp, haexp;
-	int suexp, huexp;
-
-	if (!ltime)
-		parser_set_flags(sa_data, ARRAY_SIZE(sa_data), "lifetime_cfg", MAP_FLAG_EMPTY_OBJ);
-	else {
-		sblim = xfrmnl_ltime_cfg_get_soft_bytelimit(ltime);
-		hblim = xfrmnl_ltime_cfg_get_hard_bytelimit(ltime);
-		splim = xfrmnl_ltime_cfg_get_soft_packetlimit(ltime);
-		hplim = xfrmnl_ltime_cfg_get_hard_packetlimit(ltime);
-		saexp = xfrmnl_ltime_cfg_get_soft_addexpires(ltime);
-		haexp = xfrmnl_ltime_cfg_get_hard_addexpires(ltime);
-		suexp = xfrmnl_ltime_cfg_get_soft_useexpires(ltime);
-		huexp = xfrmnl_ltime_cfg_get_hard_useexpires(ltime);
-
-		parser_set_val(xfrmnl_lft_cfg, ARRAY_SIZE(xfrmnl_lft_cfg), "soft_byte_limit", &sblim);
-		parser_set_val(xfrmnl_lft_cfg, ARRAY_SIZE(xfrmnl_lft_cfg), "hard_byte_limit", &hblim);
-		parser_set_val(xfrmnl_lft_cfg, ARRAY_SIZE(xfrmnl_lft_cfg), "soft_packet_limit", &splim);
-		parser_set_val(xfrmnl_lft_cfg, ARRAY_SIZE(xfrmnl_lft_cfg), "hard_packet_limit", &hplim);
-		parser_set_val(xfrmnl_lft_cfg, ARRAY_SIZE(xfrmnl_lft_cfg), "soft_add_expires_limit", &saexp);
-		parser_set_val(xfrmnl_lft_cfg, ARRAY_SIZE(xfrmnl_lft_cfg), "hard_add_expires_limit", &haexp);
-		parser_set_val(xfrmnl_lft_cfg, ARRAY_SIZE(xfrmnl_lft_cfg), "soft_use_expires_limit", &suexp);
-		parser_set_val(xfrmnl_lft_cfg, ARRAY_SIZE(xfrmnl_lft_cfg), "hard_use_expires_limit", &huexp);
+	if (ltime) {
+		JSON_ASSIGN_INT(obj, "soft_byte_limit", xfrmnl_ltime_cfg_get_soft_bytelimit(ltime));
+		JSON_ASSIGN_INT(obj, "hard_byte_limit", xfrmnl_ltime_cfg_get_hard_bytelimit(ltime));
+		JSON_ASSIGN_INT(obj, "soft_packet_limit", xfrmnl_ltime_cfg_get_soft_packetlimit(ltime));
+		JSON_ASSIGN_INT(obj, "hard_packet_limit", xfrmnl_ltime_cfg_get_hard_packetlimit(ltime));
+		JSON_ASSIGN_INT(obj, "soft_add_expires_limit", xfrmnl_ltime_cfg_get_soft_addexpires(ltime));
+		JSON_ASSIGN_INT(obj, "hard_add_expires_limit", xfrmnl_ltime_cfg_get_hard_addexpires(ltime));
+		JSON_ASSIGN_INT(obj, "soft_use_expires_limit", xfrmnl_ltime_cfg_get_soft_useexpires(ltime));
+		JSON_ASSIGN_INT(obj, "hard_use_expires_limit", xfrmnl_ltime_cfg_get_hard_useexpires(ltime));
 	}
 	
 }
 
-void xfrm_sa_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int val, void *data)
+void xfrm_sa_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int val, void *arg __unused)
 {
-	struct monitor_socket *s __unused = data;
+	json_t *report;
+	json_t *data;
 	char *result;
+
 	struct xfrmnl_sa *sa = (struct xfrmnl_sa *)obj;
 	char srcaddr[256];
 	char dstaddr[256];
-	int spi =  xfrmnl_sa_get_spi(sa);
-	int proto = xfrmnl_sa_get_proto(sa);
-	int family = xfrmnl_sa_get_family(sa);
-	int mode = xfrmnl_sa_get_mode(sa);
-	int flags = xfrmnl_sa_get_flags(sa);
-	int seq = xfrmnl_sa_get_seq(sa);
-	int reqid = xfrmnl_sa_get_reqid(sa);
+	char selsaddr[256];
+	char seldaddr[256];
 	struct nl_addr *saddr = xfrmnl_sa_get_saddr(sa);
 	struct nl_addr *daddr = xfrmnl_sa_get_daddr(sa);
-	struct xfrmnl_sel *sel = xfrmnl_sa_get_sel(sa);
-	struct xfrmnl_ltime_cfg *ltime = xfrmnl_sa_get_lifetime_cfg(sa);
 
 	memset(srcaddr, 0, 256);
 	memset(dstaddr, 0, 256);
 	/* set the op */
-	parser_set_val(sa_tree, ARRAY_SIZE(sa_tree), "op", sa_ops[val]);
+	report = json_object();
+	data = create_json_report(report, "xfrm", "sa", sa_ops[val]);
 
 	/* set the general sa data */
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "saddr", nl_addr2str(saddr, srcaddr, 256));
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "daddr", nl_addr2str(daddr, dstaddr, 256));
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "spi", &spi);
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "proto", &proto);
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "family", &family);
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "mode", &mode);
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "flags", &flags);
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "seq", &seq);
-	parser_set_val(sa_data, ARRAY_SIZE(sa_data), "reqid", &reqid);
+	JSON_ASSIGN_STRING(data, "saddr", nl_addr2str(saddr, srcaddr, 256));	
+	JSON_ASSIGN_STRING(data, "daddr", nl_addr2str(daddr, dstaddr, 256));
+	JSON_ASSIGN_INT(data, "spi", xfrmnl_sa_get_spi(sa));
+	JSON_ASSIGN_INT(data, "proto", xfrmnl_sa_get_proto(sa));
+	JSON_ASSIGN_INT(data, "family", xfrmnl_sa_get_family(sa));
+	JSON_ASSIGN_INT(data, "mode", xfrmnl_sa_get_mode(sa));
+	JSON_ASSIGN_INT(data, "flags", xfrmnl_sa_get_flags(sa));
+	JSON_ASSIGN_INT(data, "seq", xfrmnl_sa_get_seq(sa));
+	JSON_ASSIGN_INT(data, "reqid", xfrmnl_sa_get_reqid(sa));
 
 
 	/* Fill out the selector fields */
-	fill_sel(sel);
+	fill_sel(xfrmnl_sa_get_sel(sa), create_json_child_object(data, "sel"), selsaddr, seldaddr);
 
 	/* Fill in the lifetime config */
-	fill_lft(ltime);
+	fill_lft(xfrmnl_sa_get_lifetime_cfg(sa), create_json_child_object(data, "lifetime_cfg"));
 
-	result = compile_json_string(sa_tree, ARRAY_SIZE(sa_tree));
+	result = json_dumps(report, JSON_COMPACT);
 	print_json_event(result);
-	parser_reset_tmpl(sa_tree, ARRAY_SIZE(sa_tree));
+	json_decref(report);
 	free(result);
 	return;
 }
 
-static struct json_map xfrmnl_user_sec[] = {
-	JSON_MAP_ENTRY("len", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("exttype", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("alg", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("doi", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("ctx_str", JSON_STRING, TBD, 0, NULL),
-};
-
-struct usrtmp_array_data {
-	int spi;
-	int family;
-	char saddr[256];
-	int reqid;
-	int mode;
-	int share;
-	int optional;
-	int aalgos;
-	int ealgos;
-	int calgos;
-};
-
-static struct json_map usrtmpl_array[] = {
-	JSON_MAP_ENTRY("spi", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("family", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("saddr", JSON_STRING, TBD, 0, NULL),
-	JSON_MAP_ENTRY("reqid", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("mode", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("share", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("optionsl", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("aalgos", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("ealgos", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("calgos", JSON_INTEGER, TBD, 0, NULL),
-};
-
-static struct json_map sp_data[] = {
-	JSON_MAP_ENTRY("sel", JSON_OBJECT, TBD, ARRAY_SIZE(xfrmnl_sel), xfrmnl_sel),
-	JSON_MAP_ENTRY("lifetime_cfg", JSON_OBJECT, TBD, ARRAY_SIZE(xfrmnl_lft_cfg), xfrmnl_lft_cfg),
-	JSON_MAP_ENTRY("priority", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("index", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("dir", JSON_STRING, TBD, 0, NULL),
-	JSON_MAP_ENTRY("action", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("flags", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("share", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("user_sec_ctx", JSON_OBJECT, TBD, ARRAY_SIZE(xfrmnl_user_sec), xfrmnl_user_sec),
-	JSON_MAP_ENTRY("userpolicy_type", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("mark", JSON_INTEGER, TBD, 0, NULL),
-	JSON_MAP_ENTRY("usrtmpl_list", JSON_ARRAY, TBD, ARRAY_SIZE(usrtmpl_array), usrtmpl_array),
-};
-
-static struct json_map sp_tree[] = JSON_COMMON_TOPLEVEL("xfrm", "sp", TBD, sp_data);
+struct usrtmpl_storage {
+	struct json_t *array;
+	size_t num_strings;
+	char *strings;
+}; 
 
 static void fill_usrtmpl_entry(struct xfrmnl_user_tmpl *utmpl, void *arg)
 {
-	struct json_array_map *usertmpl = arg;
-	struct usrtmp_array_data *newelem;
+	json_t *new;
+	struct usrtmpl_storage *array_store = arg;
 	struct nl_addr *addr;
-	int index;
-	
-	newelem = parser_next_element(usertmpl, &index);
-	newelem->spi = xfrmnl_user_tmpl_get_spi(utmpl);
-	newelem->family = xfrmnl_user_tmpl_get_family(utmpl);
+	int index = array_store->num_strings;
+	array_store->num_strings++;
+	array_store->strings = realloc(array_store->strings, 256 * array_store->num_strings);
+
+	memset(&array_store->strings[index * 256], 0, 256);
+
 	addr = xfrmnl_user_tmpl_get_saddr(utmpl);
-	memset(newelem->saddr, 0, 256);
-	nl_addr2str(addr, newelem->saddr, 256);
-	newelem->reqid = xfrmnl_user_tmpl_get_reqid(utmpl);
-	newelem->mode = xfrmnl_user_tmpl_get_mode(utmpl);
-	newelem->share = xfrmnl_user_tmpl_get_share(utmpl);
-	newelem->optional = xfrmnl_user_tmpl_get_optional(utmpl);
-	newelem->aalgos = xfrmnl_user_tmpl_get_aalgos(utmpl);
-	newelem->ealgos = xfrmnl_user_tmpl_get_ealgos(utmpl);
-	newelem->calgos = xfrmnl_user_tmpl_get_calgos(utmpl);
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "spi", &newelem->spi); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "family", &newelem->family); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "saddr", &newelem->saddr); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "reqid", &newelem->reqid); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "mode", &newelem->mode); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "share", &newelem->share); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "optional", &newelem->optional); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "aalgos", &newelem->aalgos); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "ealgos", &newelem->ealgos); 
-	parser_set_array_val(usertmpl, index, usrtmpl_array, ARRAY_SIZE(usrtmpl_array), "calgos", &newelem->calgos); 
+	nl_addr2str(addr, &array_store->strings[index * 256], 256);
+
+	new = json_object();
+
+	JSON_ASSIGN_INT(new, "spi", xfrmnl_user_tmpl_get_spi(utmpl));
+	JSON_ASSIGN_INT(new, "family", xfrmnl_user_tmpl_get_family(utmpl));
+	JSON_ASSIGN_STRING(new, "saddr", &array_store->strings[index * 256]); 
+	JSON_ASSIGN_INT(new, "reqid", xfrmnl_user_tmpl_get_reqid(utmpl));
+	JSON_ASSIGN_INT(new, "mode", xfrmnl_user_tmpl_get_mode(utmpl));
+	JSON_ASSIGN_INT(new, "share", xfrmnl_user_tmpl_get_share(utmpl));
+	JSON_ASSIGN_INT(new, "optional", xfrmnl_user_tmpl_get_optional(utmpl));
+	JSON_ASSIGN_INT(new, "aalgos", xfrmnl_user_tmpl_get_aalgos(utmpl));
+	JSON_ASSIGN_INT(new, "ealgos", xfrmnl_user_tmpl_get_ealgos(utmpl));
+	JSON_ASSIGN_INT(new, "calgos", xfrmnl_user_tmpl_get_calgos(utmpl));
+
+	json_array_append(array_store->array, new);
+	json_decref(new); 
 }
 
-void xfrm_sp_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int val, void *data __unused)
+void xfrm_sp_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int val, void *arg __unused)
 {
 	struct xfrmnl_sp *sp = (struct xfrmnl_sp *)obj;
-	struct xfrmnl_sel *sel = xfrmnl_sp_get_sel(sp);
-	struct xfrmnl_ltime_cfg *ltime = xfrmnl_sp_get_lifetime_cfg(sp);
-	int prio = xfrmnl_sp_get_priority(sp);
-	int index = xfrmnl_sp_get_index(sp);
-	int dir = xfrmnl_sp_get_dir(sp);
-	int action = xfrmnl_sp_get_action(sp);
-	int flags = xfrmnl_sp_get_flags(sp);
-	int share = xfrmnl_sp_get_share(sp);
 	unsigned int len;
 	unsigned int exttype;
 	unsigned int alg;
 	unsigned int doi;
 	unsigned int ctx_len;
 	char *ctx_str = NULL;
-	int uptype = xfrmnl_sp_get_userpolicy_type(sp);
-	struct json_array_map *usrtmpl = NULL;
+	char selsaddr[256];
+	char seldaddr[256];
+	json_t  *usrtmpl;
+	json_t *report;
+	json_t *data;
+	json_t *sec_ctx;
 	char *result;
+	struct usrtmpl_storage array_store;
 
 	/* set the op*/
-        parser_set_val(sp_tree, ARRAY_SIZE(sp_tree), "op", sp_ops[val]);
+	report = json_object();
+	data = create_json_report(report, "xfrm", "sp", sp_ops[val]);
 
 	/* set top level data */
-	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "priority", &prio);
-	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "index", &index);
-	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "dir", dirs[dir]);
-	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "action", &action);
-	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "flags", &flags);
-	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "share", &share);
-	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "userpolicy_type", &uptype);
-	
+	JSON_ASSIGN_INT(data, "priority", xfrmnl_sp_get_priority(sp));
+	JSON_ASSIGN_INT(data, "index", xfrmnl_sp_get_index(sp));
+	JSON_ASSIGN_STRING(data, "dir", dirs[xfrmnl_sp_get_dir(sp)]);
+	JSON_ASSIGN_INT(data, "action", xfrmnl_sp_get_action(sp));
+	JSON_ASSIGN_INT(data, "flags", xfrmnl_sp_get_flags(sp));
+	JSON_ASSIGN_INT(data, "share", xfrmnl_sp_get_share(sp));
+	JSON_ASSIGN_INT(data, "userpolicy_type", xfrmnl_sp_get_userpolicy_type(sp));
+
 	/* fill in the selector */
-	fill_sel(sel);
+	fill_sel(xfrmnl_sp_get_sel(sp), create_json_child_object(data, "sel"), selsaddr, seldaddr);
 
 	/* And the lifetime config */
-	fill_lft(ltime);	
+	fill_lft(xfrmnl_sp_get_lifetime_cfg(sp), create_json_child_object(data, "lifetime_cfg"));	
 
 	/* And the user security context */
-	if (xfrmnl_sp_get_sec_ctx(sp, &len, &exttype, &alg, &doi, &ctx_len, NULL)) {
-		parser_set_flags(sp_data, ARRAY_SIZE(sp_data), "user_sec_ctx", MAP_FLAG_EMPTY_OBJ);
-	} else {
-		if (!ctx_len)
-			parser_set_flags(sp_data, ARRAY_SIZE(sp_data), "user_sec_ctx", MAP_FLAG_EMPTY_OBJ);
-		else {
-			ctx_str = alloca(ctx_len+1);
-			memset(ctx_str, 0, ctx_len+1);
-			xfrmnl_sp_get_sec_ctx(sp, &len, &exttype, &alg, &doi, &ctx_len, ctx_str);
-			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "len", &len);
-			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "exttype", &exttype);
-			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "alg", &alg);
-			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "doi", &doi);
-			parser_set_val(xfrmnl_user_sec, ARRAY_SIZE(xfrmnl_user_sec), "ctx_str", ctx_str);
-		}
+	sec_ctx = create_json_child_object(data, "sec_ctx");
+	if (!xfrmnl_sp_get_sec_ctx(sp, &len, &exttype, &alg, &doi, &ctx_len, NULL)) {
+		ctx_str = alloca(ctx_len+1);
+		memset(ctx_str, 0, ctx_len+1);
+		xfrmnl_sp_get_sec_ctx(sp, &len, &exttype, &alg, &doi, &ctx_len, ctx_str);
+
+		JSON_ASSIGN_INT(sec_ctx, "len", len);
+		JSON_ASSIGN_INT(sec_ctx, "exttype", exttype);
+		JSON_ASSIGN_INT(sec_ctx, "alg", alg);
+		JSON_ASSIGN_INT(sec_ctx, "doi", doi);
+		JSON_ASSIGN_STRING(sec_ctx, "ctx_str", ctx_str);
 	}
 
 	/* fill out the usertmp array */
-	usrtmpl = parser_alloc_array(usrtmpl_array, ARRAY_SIZE(usrtmpl_array), sizeof(struct usrtmp_array_data)); 
-	xfrmnl_sp_foreach_usertemplate(sp, fill_usrtmpl_entry, usrtmpl);
-	parser_set_val(sp_data, ARRAY_SIZE(sp_data), "usrtmpl_list", usrtmpl);
+	usrtmpl = create_json_child_array(data, "usrtmpl_list"); 
+	array_store.strings = NULL;
+	array_store.num_strings = 0;
+	array_store.array = usrtmpl;
+	
+	xfrmnl_sp_foreach_usertemplate(sp, fill_usrtmpl_entry, &array_store);
 
-	result = compile_json_string(sp_tree, ARRAY_SIZE(sp_tree));
+	result = json_dumps(report, JSON_COMPACT);
 	print_json_event(result);
-	parser_reset_tmpl(sp_tree, ARRAY_SIZE(sp_tree));
+	json_decref(report);
 	free(result);
-	parser_free_array(usrtmpl);
+	free(array_store.strings);
 
 	return;
 }
