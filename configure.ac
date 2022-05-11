@@ -12,7 +12,9 @@ AC_PROG_RANLIB
 
 AC_PROG_EGREP
 
-#set this for PKG_CHECK_MODULES below
+AC_ARG_ENABLE(static, AS_HELP_STRING([--enable-static], [enable static build]), [enable_static=yes],[enable_static=no])
+
+AM_CONDITIONAL([STATIC], [test "x$enable_static" = "xyes"])
 
 # Arguments to present via configure script
 AX_PTHREAD([have_pthread=yes],[have_pthread=no])
