@@ -19,6 +19,13 @@ static char *addr_ops[] = {
 	"RTMSG_GET_ADDR",
 };
 
+static char *link_ops[] = {
+	"UNKNOWN", 
+	"RTMSG_NEW_LINK",
+	"RTMSG_DEL_LINK",
+	"RTMSG_GET_LINK",
+};
+
 struct nexthop_storage {
         struct json_t *array;
         size_t num_strings;
@@ -192,3 +199,20 @@ void addr_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int 
         free(result);	
 }
 
+void link_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int val, void *arg __unused)
+{
+	struct rtnl_link *link = (struct rtnl_link *)obj;
+	json_t *report;
+	json_t *data;
+	char *result;
+
+	report = json_object();
+	data = create_json_report(report, "route", "link", link_ops[val]);
+
+	fill_link_info(data, link);
+
+	result = json_dumps(report, JSON_COMPACT);
+	print_json_event(result);
+	json_decref(report);
+	free(result);
+}

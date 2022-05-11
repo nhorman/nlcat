@@ -21,6 +21,7 @@ static bool teardown = false;
 static pthread_mutex_t event_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int alloc_route_cache(struct nl_sock *s, struct nl_cache **c);
+static int alloc_link_cache(struct nl_sock *s, struct nl_cache **c);
 
 static struct monitor_socket monitors[] = {
 	{
@@ -44,10 +45,20 @@ static struct monitor_socket monitors[] = {
 		.change_cb = addr_change_cb,
 	},
 	{
+		.protocol = NETLINK_ROUTE,
+		.alloc_cache = alloc_link_cache,
+		.change_cb = link_change_cb,
+	},
+	{
 		.protocol = 0,
 		.change_cb = NULL,
 	}
 };
+
+static int alloc_link_cache(struct nl_sock *s, struct nl_cache **c)
+{
+	return rtnl_link_alloc_cache(s, AF_UNSPEC, c);
+}
 
 static int alloc_route_cache(struct nl_sock *s, struct nl_cache **c)
 {
