@@ -1,4 +1,5 @@
 #include <netlink/route/route.h>
+#include <netlink/route/addr.h>
 #include <jansson.h>
 #include <monitors.h>
 #include <route_monitor.h>
@@ -9,6 +10,13 @@ static char* ops[] = {
 	"RTMNSG_NEW_ROUTE",
 	"RTMSG_DEL_ROUTE",
 	"RTMSG_GET_ROUTE",
+};
+
+static char *addr_ops[] = {
+	"UNKNOWN", 
+	"RTMSG_NEW_ADDR",
+	"RTMSG_DEL_ADDR",
+	"RTMSG_GET_ADDR",
 };
 
 struct nexthop_storage {
@@ -100,4 +108,87 @@ void route_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int
         free(result);	
 }
 
+void fill_link_info(json_t *obj, struct rtnl_link *link)
+{
+	struct nl_addr *nladdr;
+	char addr[256], bcast[256];
+	int out_netnsid;
+
+	memset(addr, 0, 256);
+	memset(bcast, 0, 256);
+	if (link) {
+		JSON_ASSIGN_STRING(obj, "name", rtnl_link_get_name(link));
+		JSON_ASSIGN_INT(obj, "family", rtnl_link_get_family(link));
+		JSON_ASSIGN_INT(obj, "arptype", rtnl_link_get_arptype(link));
+		JSON_ASSIGN_INT(obj, "ifindex", rtnl_link_get_ifindex(link));
+		JSON_ASSIGN_INT(obj, "flags", rtnl_link_get_flags(link));
+		JSON_ASSIGN_INT(obj, "mtu", rtnl_link_get_mtu(link));
+		JSON_ASSIGN_INT(obj, "link", rtnl_link_get_link(link));
+		if (!rtnl_link_get_link_netnsid(link, &out_netnsid))
+			JSON_ASSIGN_INT(obj, "link_nsid", out_netnsid);
+		else
+			JSON_ASSIGN_INT(obj, "link_nsid", -1);
+		JSON_ASSIGN_INT(obj, "txqueuelen", rtnl_link_get_txqlen(link));
+		JSON_ASSIGN_INT(obj, "master", rtnl_link_get_master(link));
+		nladdr = rtnl_link_get_addr(link);
+		JSON_ASSIGN_STRING(obj, "addr", nl_addr2str(nladdr, addr, 256));
+		nladdr = rtnl_link_get_broadcast(link);
+		JSON_ASSIGN_STRING(obj, "bcast", nl_addr2str(nladdr, bcast, 256));
+		JSON_ASSIGN_INT(obj, "operstate", rtnl_link_get_operstate(link));
+		JSON_ASSIGN_INT(obj, "linkmode", rtnl_link_get_linkmode(link));
+		JSON_ASSIGN_STRING(obj, "kind", rtnl_link_get_type(link));
+		JSON_ASSIGN_INT(obj, "carrier", rtnl_link_get_carrier(link));
+	}
+}
+
+void addr_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int val, void *arg __unused)
+{
+	struct rtnl_addr *addr = (struct rtnl_addr *)obj;
+	json_t *report;
+	json_t *data;
+	struct nl_addr *nladdr;
+	char a_peer[256], a_local[256], a_bcast[256];
+	char a_anycast[256], a_multicast[256];
+	char *result;
+
+	memset(a_peer, 0, 256);
+	memset(a_local, 0, 256);
+	memset(a_bcast, 0, 256);
+	memset(a_anycast, 0, 256);
+	memset(a_multicast, 0, 256);
+
+	/* set the op */
+	report = json_object();
+	data = create_json_report(report, "route", "addr", addr_ops[val]);
+
+	JSON_ASSIGN_INT(data, "family", rtnl_addr_get_family(addr));
+	JSON_ASSIGN_INT(data, "prefixlen", rtnl_addr_get_prefixlen(addr));
+	JSON_ASSIGN_INT(data, "scope", rtnl_addr_get_scope(addr));
+	JSON_ASSIGN_INT(data, "flags", rtnl_addr_get_flags(addr));
+	JSON_ASSIGN_INT(data, "ifindex", rtnl_addr_get_ifindex(addr));
+
+	nladdr = rtnl_addr_get_peer(addr);
+	JSON_ASSIGN_STRING(data, "peer", nl_addr2str(nladdr, a_peer, 256));
+
+	nladdr = rtnl_addr_get_local(addr);
+	JSON_ASSIGN_STRING(data, "local", nl_addr2str(nladdr, a_local, 256));
+
+	nladdr = rtnl_addr_get_broadcast(addr);
+	JSON_ASSIGN_STRING(data, "bcast", nl_addr2str(nladdr, a_bcast, 256));
+
+	nladdr = rtnl_addr_get_anycast(addr);
+	JSON_ASSIGN_STRING(data, "acast", nl_addr2str(nladdr, a_anycast, 256));
+
+	nladdr = rtnl_addr_get_multicast(addr);
+	JSON_ASSIGN_STRING(data, "mcast", nl_addr2str(nladdr, a_multicast, 256));
+
+	JSON_ASSIGN_STRING(data, "label", rtnl_addr_get_label(addr));
+
+	fill_link_info(create_json_child_object(report, "link"), rtnl_addr_get_link(addr));
+
+	result = json_dumps(report, JSON_COMPACT);
+	print_json_event(result);
+	json_decref(report);
+        free(result);	
+}
 

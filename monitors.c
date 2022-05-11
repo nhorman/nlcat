@@ -8,6 +8,7 @@
 #include <netlink/xfrm/sa.h>
 #include <netlink/xfrm/sp.h>
 #include <netlink/route/route.h>
+#include <netlink/route/addr.h>
 #include <monitors.h>
 #include <xfrm_monitor.h>
 #include <route_monitor.h>
@@ -36,6 +37,11 @@ static struct monitor_socket monitors[] = {
 		.protocol = NETLINK_ROUTE,
 		.alloc_cache = alloc_route_cache,
 		.change_cb = route_change_cb,
+	},
+	{
+		.protocol = NETLINK_ROUTE,
+		.alloc_cache = rtnl_addr_alloc_cache,
+		.change_cb = addr_change_cb,
 	},
 	{
 		.protocol = 0,
