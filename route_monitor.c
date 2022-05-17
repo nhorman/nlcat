@@ -14,6 +14,8 @@ static char* route_ops[] = {
 	"RTMNSG_NEW_ROUTE",
 	"RTMSG_DEL_ROUTE",
 	"RTMSG_GET_ROUTE",
+	"RTMSG_SET_ROUTE",
+	"RTMSG_CHANGE_ROUTE",
 };
 
 static char *addr_ops[] = {
@@ -21,6 +23,8 @@ static char *addr_ops[] = {
 	"RTMSG_NEW_ADDR",
 	"RTMSG_DEL_ADDR",
 	"RTMSG_GET_ADDR",
+	"RTMSG_SET_ADDR",
+	"RTMSG_CHANGE_ADDR",
 };
 
 static char *link_ops[] = {
@@ -28,6 +32,8 @@ static char *link_ops[] = {
 	"RTMSG_NEW_LINK",
 	"RTMSG_DEL_LINK",
 	"RTMSG_GET_LINK",
+	"RTMSG_SET_LINK",
+	"RTMSG_CHANGE_LINK"
 };
 
 struct nexthop_storage {
