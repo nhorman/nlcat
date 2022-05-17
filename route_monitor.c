@@ -5,7 +5,11 @@
 #include <route_monitor.h>
 #include <parser.h>
 
-static char* ops[] = {
+
+
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+
+static char* route_ops[] = {
 	"UNKNOWN",
 	"RTMNSG_NEW_ROUTE",
 	"RTMSG_DEL_ROUTE",
@@ -32,6 +36,18 @@ struct nexthop_storage {
         char *viastrings;
 	char *gwstrings;
 };
+
+static char int_ary_val[32];
+
+const char *get_op(char *ops_ary[], int maxsize, int val)
+{
+	memset(int_ary_val, 0, 32);
+	if (val >= maxsize) {
+		sprintf(int_ary_val, "%d", val);
+		return int_ary_val;
+	}
+	return ops_ary[val];
+}
 
 void fill_nexthop(struct rtnl_nexthop *nh, void *arg)
 {
@@ -78,7 +94,7 @@ void route_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int
 
 	/* set the op */
 	report = json_object();
-	data = create_json_report(report, "route", "route", ops[val]);
+	data = create_json_report(report, "route", "route", get_op(route_ops, ARRAY_SIZE(route_ops), val));
 
 	memset(sbuf, 0, 256);
 	memset(dbuf, 0, 256);
@@ -166,7 +182,7 @@ void addr_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int 
 
 	/* set the op */
 	report = json_object();
-	data = create_json_report(report, "route", "addr", addr_ops[val]);
+	data = create_json_report(report, "route", "addr", get_op(addr_ops, ARRAY_SIZE(addr_ops), val));
 
 	JSON_ASSIGN_INT(data, "family", rtnl_addr_get_family(addr));
 	JSON_ASSIGN_INT(data, "prefixlen", rtnl_addr_get_prefixlen(addr));
@@ -207,7 +223,7 @@ void link_change_cb(struct nl_cache *cache __unused, struct nl_object *obj, int 
 	char *result;
 
 	report = json_object();
-	data = create_json_report(report, "route", "link", link_ops[val]);
+	data = create_json_report(report, "route", "link", get_op(link_ops, ARRAY_SIZE(link_ops), val));
 
 	fill_link_info(data, link);
 
