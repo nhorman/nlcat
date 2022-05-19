@@ -11,7 +11,7 @@
 
 static char* route_ops[] = {
 	"UNKNOWN",
-	"RTMNSG_NEW_ROUTE",
+	"RTMSG_NEW_ROUTE",
 	"RTMSG_DEL_ROUTE",
 	"RTMSG_GET_ROUTE",
 	"RTMSG_SET_ROUTE",
